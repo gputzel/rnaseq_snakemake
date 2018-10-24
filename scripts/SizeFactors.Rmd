@@ -1,0 +1,44 @@
+---
+title: "Size Factors"
+output: html_document
+---
+
+```{r include=FALSE}
+library(DESeq2)
+library(tidyverse)
+library(plotly)
+```
+
+```{r include=FALSE}
+#dds <- readRDS(snakemake@input[['dds']])
+dds <- readRDS('../data/RData/dds.rds')
+```
+
+```{r include=FALSE}
+params <- snakemake@config[['size_factor_plot']]
+x.var <- params[['x-axis-attribute']]
+color.var <- params[['color-attribute']]
+group.var <- params[['group-attribute']]
+facet.var <- params[['facet-attribute']]
+shape.var <- params[['shape-attribute']]
+```
+
+```{r echo=FALSE}
+data.frame(
+    colData(dds)
+) %>%
+    rownames_to_column(var='Sample') %>%
+    ggplot(aes_string(x=x.var,y='sizeFactor',color=color.var,shape=shape.var,"Sample"="Sample")) +
+    geom_point(size=3) +
+    ylab("Size factor") -> g
+if(!is.null(group.var)){
+    g <- g + geom_line()
+}
+if(!is.null(facet.var)){
+    g <- g + facet_wrap(as.formula(paste0('~',facet.var)))
+}
+ggplotly(g)
+```
+
+
+

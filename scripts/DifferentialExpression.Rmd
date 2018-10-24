@@ -1,0 +1,151 @@
+---
+title: "Differential expression"
+output: 
+  flexdashboard::flex_dashboard
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(ggp.rnaseq)
+library(DESeq2)
+library(DT)
+library(crosstalk)
+library(d3scatter)
+library(plotly)
+library(org.Mm.eg.db)
+```
+
+```{r include=FALSE}
+comparison <- snakemake@wildcards[['comparison']]
+
+params <- snakemake@config[['comparisons']][[comparison]]
+bad.samples <- params[['bad-samples']]
+new.design <- as.formula(params[['design']])
+prefilter.string <- params[['prefilter']]
+sample.subset <- params[['subset']]
+de.attribute <- params[['attribute']]
+de.group.1 <- params[['group1_plus']]
+de.group.2 <- params[['group2_minus']]
+
+alpha <- 0.1
+```
+
+```{r include=FALSE}
+#Annoying difference in behavior between RMarkdown and R scripts when it comes to working directories...
+res <- readRDS(paste0('../',snakemake@input[['rds']]))
+#ggp.results(dds.filtered,c('genotype','KO','IL7Rcre'))
+res %>% filter(!is.na(padj) & padj < 0.1) %>%
+    mutate(baseMean=formatC(baseMean,format="e",digits=2)) %>%
+    mutate(pvalue=formatC(pvalue, format = "e", digits = 2)) %>%
+    mutate(padj=formatC(padj, format = "e", digits = 2)) %>%
+    dplyr::select(-lfcSE,-stat) -> res.de
+res.de %>% filter(log2FoldChange > 0) %>% 
+    arrange(-log2FoldChange) %>%
+    mutate(log2FoldChange = formatC(log2FoldChange,format="e",digits=2)) ->
+    res.de.up
+res.de %>% filter(log2FoldChange < 0) %>% 
+    arrange(log2FoldChange) %>%
+    mutate(log2FoldChange = formatC(log2FoldChange,format="e",digits=2)) ->
+    res.de.down
+```
+
+```{r include=FALSE}
+sd.up <- SharedData$new(res)
+```
+
+Overview
+=====================================
+
+### 
+
+```{r include=FALSE}
+comparison <- snakemake@wildcards[['comparison']]
+params <- snakemake@config[['comparisons']][[comparison]]
+bad.samples.data <- params[['bad-samples']]
+bad.sample.string.list <- lapply(names(bad.samples), function(bs) paste0("- ",bs, ' (', bad.samples.data[bs],')'))
+names(bad.sample.string.list) <- names(bad.samples)
+bad.sample.string <- paste0(bad.sample.string.list,collapse='\n')
+```
+
+- Comparison: `r params[['long-name']]`
+- Design: `r params[['design']]`
+- Comparison attribute: `r params[['attribute']]`
+- **Positive log fold changes** indicate that expression is higher in **`r paste0(params[['attribute']], '=', params[['group1_plus']])`** than in **`r paste0(params[['attribute']], '=', params[['group2_minus']])`**
+- **Negative log fold changes** indicate that expression is higher in **`r paste0(params[['attribute']], '=', params[['group2_minus']])`** than in **`r paste0(params[['attribute']], '=', params[['group1_plus']])`**
+- Gene prefilter function: ``r params[['prefilter']]`` (`r params[['prefilter_description']]`)
+- Genes are considered significantly differentially expressed when the adjusted p value (`padj`, or equivalently, False Discovery Rate) is less than `r alpha`. 
+- `DESeq2` version: `r packageVersion('DESeq2')`
+- `ggp.rnaseq` version: `r packageVersion('ggp.rnaseq')`
+- Report generated on `r format(Sys.time(), "%a %b %d %X %Y")`
+
+Samples removed from analysis:
+
+`r bad.sample.string`
+
+### Samples included
+
+```{r echo=FALSE}
+dds <- readRDS(paste0('../',snakemake@input[['dds']]))
+DT::datatable(as.data.frame(colData(dds)),width='60%',extensions=c('Scroller'),options=list(scrollY=200))
+```
+
+
+Higher in `r de.group.1`
+===================================== 
+
+```{r echo=FALSE}
+DT::datatable(res.de.up,rownames=F,height = '100%',extensions = c('Scroller', 'Buttons'),
+   options = list( scrollY = 200,  scroller = TRUE,  dom = "Bfrtip",
+     buttons = c('copy', 'csv')))
+```
+
+Lower in `r de.group.1`
+===================================== 
+
+```{r echo=FALSE}
+DT::datatable(res.de.down,rownames=F,height = '100%',extensions = c('Scroller', 'Buttons'),
+   options = list( scrollY = 200,  scroller = TRUE,  dom = "Bfrtip",
+     buttons = c('copy', 'csv')))
+```
+
+Volcano
+===================================== 
+
+```{r echo=FALSE}
+my.colors <- c("Yes"="red","No"="black")
+res %>%
+    mutate(significant = ifelse(!is.na(padj) & padj < 0.1,"Yes","No")) %>%
+    plot_ly(x=~log2FoldChange,y=~-log10(pvalue),
+            color=~significant,colors=my.colors,
+            type="scatter", mode="markers", hoverinfo="text", text = ~paste(SYMBOL, '<br>', GENENAME))
+```
+
+Scatterplot
+===================================== 
+
+
+```{r echo=FALSE}
+as.data.frame(counts(dds,normalize=TRUE)) %>%
+    rownames_to_column(var="ENTREZID") %>%
+    gather(-ENTREZID,key='sample',value='counts') -> df.long
+data.frame(df.long,as.data.frame(colData(dds))[df.long$sample,]) -> df.long
+df.long %>% group_by_(params[['attribute']],'ENTREZID') %>%
+    summarize(avg = mean(counts)) %>% 
+    spread(key=params[['attribute']],value='avg') -> df.mean
+gene.info <- suppressMessages(AnnotationDbi::select(org.Mm.eg.db,keys=df.mean$ENTREZID,keytype='ENTREZID',columns=c('SYMBOL','GENENAME')))
+suppressMessages(inner_join(df.mean,gene.info)) -> df
+df$DE <- "No"
+df[df$ENTREZID %in% res.de.up$ENTREZID,'DE'] <- "Up"
+df[df$ENTREZID %in% res.de.down$ENTREZID,'DE'] <- "Down"
+de.colors=c("No"="black","Up"="red","Down"="blue")
+formula.x <- as.formula(paste0('~log10(',params[['group2_minus']],')'))
+formula.y <- as.formula(paste0('~log10(',params[['group1_plus']],')'))
+df %>%
+    plot_ly(
+        x=formula.x,y=formula.y,
+        color=~DE,colors=de.colors,
+        type="scatter", mode="markers", hoverinfo="text",text = ~paste(SYMBOL, '<br>', GENENAME)
+    )
+```
+

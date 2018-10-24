@@ -1,0 +1,53 @@
+---
+title: "Heatmap"
+output: 
+  flexdashboard::flex_dashboard
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(ggp.rnaseq)
+library(DESeq2)
+library(DT)
+library(crosstalk)
+library(d3scatter)
+library(plotly)
+library(org.Mm.eg.db)
+library(heatmaply)
+```
+
+```{r include=FALSE}
+heatmap.name <- snakemake@wildcards[['heatmap']]
+params <- snakemake@config[['heatmaps']][[heatmap.name]]
+sample.attributes <- params[['sample_attributes']]
+n.top.genes <- params[['number_top_genes']]
+```
+
+```{r include=FALSE}
+vsd <- readRDS(paste0('../',snakemake@input[['vsd']]))
+```
+
+`r heatmap.name`
+=====================================
+
+```{r include=FALSE}
+ord <- order(-rowVars(assay(vsd)))
+m.top.200 <- assay(vsd)[ord[1:200],]
+rownames(m.top.200) <- AnnotationDbi::mapIds(org.Mm.eg.db,keys=rownames(m.top.200),keytype='ENTREZID',column='SYMBOL')
+```
+
+### Heatmap
+
+```{r}
+sample.data <- as.data.frame(colData(vsd))[,sample.attributes,drop=FALSE]
+heatmaply(m.top.200,scale='row',col_side_colors = sample.data,margins=c(100,100))
+```
+
+### Info
+
+- Heatmap is based on the `r n.top.genes` genes with the highest variance after applying the `DESeq2` function `varianceStabilizingTransformation`.
+- Gene prefilter function: ``r params[['prefilter']]`` (`r params[['prefilter_description']]`)
+- `DESeq2` version: `r packageVersion('DESeq2')`
+- `ggp.rnaseq` version: `r packageVersion('ggp.rnaseq')`
+- Report generated on `r format(Sys.time(), "%a %b %d %X %Y")`

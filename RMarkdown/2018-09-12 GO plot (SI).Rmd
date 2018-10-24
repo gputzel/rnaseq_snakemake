@@ -1,0 +1,24 @@
+---
+title: "fgsea plot (SI)"
+output: html_notebook
+---
+
+```{r include=FALSE}
+library(tidyverse)
+```
+
+```{r}
+res.fgsea <- readRDS('../data/RData/fgsea-KO_vs_cre_prefilter.rds')
+```
+
+```{r}
+res.fgsea %>% colnames
+```
+
+```{r}
+res.fgsea %>% filter(padj < 0.1) %>%
+    arrange(-abs(NES)) %>%
+    head(n=20) %>%
+    arrange(-NES)
+```
+

@@ -1,0 +1,93 @@
+---
+title: "fgsea"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(DT)
+library(org.Mm.eg.db)
+```
+
+```{r include=FALSE}
+comparison <- snakemake@wildcards[['comparison']]
+
+params <- snakemake@config[['comparisons']][[comparison]]
+bad.samples <- params[['bad-samples']]
+new.design <- as.formula(params[['design']])
+prefilter.string <- params[['prefilter']]
+sample.subset <- params[['subset']]
+de.attribute <- params[['attribute']]
+de.group.1 <- params[['group1_plus']]
+de.group.2 <- params[['group2_minus']]
+
+alpha <- 0.1
+
+bad.samples.data <- params[['bad-samples']]
+bad.sample.string.list <- lapply(names(bad.samples), function(bs) paste0("- ",bs, ' (', bad.samples.data[bs],')'))
+names(bad.sample.string.list) <- names(bad.samples)
+bad.sample.string <- paste0(bad.sample.string.list,collapse='\n')
+```
+
+```{r include=FALSE}
+convert.entrez <- function(entrez){
+    paste(suppressMessages(AnnotationDbi::mapIds(org.Mm.eg.db,keys=entrez,keytype='ENTREZID',column='SYMBOL')),collapse=',')
+}
+```
+
+
+```{r include=FALSE}
+res.fgsea <- readRDS(paste0('../',snakemake@input[['rds']]))
+res.fgsea %>% filter(padj < 0.1) -> res.fgsea.sig
+
+res.fgsea.sig %>% filter(padj < 0.1) %>% filter(NES < 0) %>% arrange(NES) %>% mutate(leadingEdge = map(leadingEdge,convert.entrez)) -> res.fgsea.down
+res.fgsea.sig %>% filter(padj < 0.1) %>% filter(NES > 0) %>% arrange(-NES) %>% mutate(leadingEdge = map(leadingEdge,convert.entrez)) -> res.fgsea.up
+```
+
+Overview
+===================================== 
+
+`fgsea` is based on the following comparison:
+
+- Comparison: `r params[['long-name']]`
+- Design: `r params[['design']]`
+- Comparison attribute: `r params[['attribute']]`
+- **Positive log fold changes** indicate that expression is higher in **`r paste0(params[['attribute']], '=', params[['group1_plus']])`** than in **`r paste0(params[['attribute']], '=', params[['group2_minus']])`**
+- **Negative log fold changes** indicate that expression is higher in **`r paste0(params[['attribute']], '=', params[['group2_minus']])`** than in **`r paste0(params[['attribute']], '=', params[['group1_plus']])`**
+- Gene prefilter function: ``r params[['prefilter']]`` (`r params[['prefilter_description']]`)
+- `DESeq2` version: `r packageVersion('DESeq2')`
+- `ggp.rnaseq` version: `r packageVersion('ggp.rnaseq')`
+- Report generated on `r format(Sys.time(), "%a %b %d %X %Y")`
+
+Samples removed from analysis:
+
+`r bad.sample.string`
+
+`fgsea` parameters:
+
+- Minimum pathway size: `r snakemake@config[['fgsea']][['minSize']]` genes
+- Maximum pathway size: `r snakemake@config[['fgsea']][['maxSize']]` genes
+- Number of permutations: `r as.character(snakemake@config[['fgsea']][['nperm']])`
+- `fgsea` version: `r packageVersion('fgsea')`
+
+Higher in `r de.group.1`
+===================================== 
+
+```{r echo=FALSE}
+DT::datatable(res.fgsea.up,rownames=F,height = '100%',extensions = c('Scroller', 'Buttons'),
+   options = list( scrollY = 200,  scroller = TRUE,  dom = "Bfrtip",
+     buttons = c('copy', 'csv')))
+```
+
+Lower in `r de.group.1`
+===================================== 
+
+```{r echo=FALSE}
+DT::datatable(res.fgsea.down,rownames=F,height = '100%',extensions = c('Scroller', 'Buttons'),
+   options = list( scrollY = 200,  scroller = TRUE,  dom = "Bfrtip",
+     buttons = c('copy', 'csv')))
+```

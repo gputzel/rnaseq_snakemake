@@ -1,0 +1,88 @@
+{
+    "bam_path":"/path/to/BAM",
+    "comparisons":{
+        "KO_vs_WT":{
+            "long-name":"KO versus WT",
+            "subset":"TRUE",
+            "attribute":"genotype",
+            "group1_plus":"KO",
+            "group2_minus":"WT",
+            "design":"~genotype",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds)) > 0,]",
+            "prefilter_description":"Remove genes that have zero total counts",
+            "do_fgsea":true
+        },
+        "KO_vs_WT_prefilter":{
+            "long-name":"KO versus WT (prefiltered genes)",
+            "subset":"TRUE",
+            "attribute":"genotype",
+            "group1_plus":"KO",
+            "group2_minus":"WT",
+            "design":"~genotype",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
+            "prefilter_description":"Keep genes with 50 or more counts in at least 2 samples",
+            "do_fgsea":true
+        }
+    },
+    "size_factor_plot":{
+        "x-axis-attribute":"genotype",
+        "color-attribute":"genotype",
+        "facet-attribute":null,
+        "group-attribute":null,
+        "shape-attribute":null
+    },
+    "PCA_plots":{
+        "All_samples":{
+            "subset":"TRUE",
+            "color-attribute":"genotype",
+            "shape-attribute":null,
+            "design":"~genotype",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds)) > 0,]",
+            "prefilter_description":"Remove genes that have zero total counts"
+        },
+        "All_samples_prefilter":{
+            "subset":"TRUE",
+            "color-attribute":"genotype",
+            "shape-attribute":null,
+            "design":"~genotype",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
+            "prefilter_description":"Keep genes with 50 or more counts in at least 2 samples"
+        }
+
+    },
+    "heatmaps":{
+        "All_samples":{
+            "subset":"TRUE",
+            "sample_attributes":["genotype"],
+            "design":"~genotype",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds)) > 0,]",
+            "prefilter_description":"Remove genes that have zero total counts",
+            "number_top_genes":100
+        },
+        "All_samples_prefiltered":{
+            "subset":"TRUE",
+            "sample_attributes":["genotype"],
+            "design":"~genotype",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
+            "prefilter_description":"Keep genes with 50 or more counts in at least 2 samples",
+            "number_top_genes":100
+        }
+    },
+    "fgsea":{
+        "minSize":10,
+        "maxSize":500,
+        "nperm":20000
+    }
+}

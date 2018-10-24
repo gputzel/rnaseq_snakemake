@@ -1,0 +1,137 @@
+---
+title: "PC genes"
+output: 
+  flexdashboard::flex_dashboard
+---
+
+```{r include=FALSE}
+library(DESeq2)
+library(tidyverse)
+library(ggp.rnaseq)
+library(org.Mm.eg.db)
+library(DT)
+library(flexdashboard)
+library(plotly)
+```
+
+PCA plot
+=====================================
+
+Prefiltered genes: Keep genes with 50 or more counts in at least 2 samples.:w
+
+```{r include=FALSE}
+dds <- readRDS('../data/RData/dds-KO_vs_cre_prefilter.rds')
+res <- readRDS('../data/RData/DE-KO_vs_cre_prefilter.rds')
+
+res.de <- filter(res,!is.na(padj) & padj < 0.1)
+de.genes <- res.de$ENTREZID
+```
+
+```{r include=FALSE}
+vsd <- varianceStabilizingTransformation(dds)
+```
+
+```{r include=FALSE}
+ggp.pca.2 <- function (x, coldata, color.attr = NULL,shape.attr=NULL, color.scheme = NULL,
+    n.topvar.genes = 500, biplot = FALSE, arrow.length = 0.9, 
+    highlight.genes = c(), highlight.color = "red") 
+{
+    suppressPackageStartupMessages(OK <- require(genefilter))
+    if (!OK) 
+        stop("Error: package 'genefilter' not found")
+    suppressPackageStartupMessages(OK <- require(ggplot2))
+    if (!OK) 
+        stop("Error: package 'ggplot2' not found")
+    rv <- rowVars(assay(x))
+    select <- order(rv, decreasing = TRUE)[1:n.topvar.genes]
+    pca <- prcomp(t(assay(x)[select, ]), center = TRUE)
+    pc.data <- data.frame(obsnames = row.names(pca$x), pca$x, 
+        coldata)
+    percent.variance <- round(100 * pca$sdev^2/(sum(pca$sdev^2)))
+    my.data <- data.frame(obsnames = row.names(pca$x), pca$x, 
+        coldata)
+    datapc <- data.frame(varnames = rownames(pca$rotation), pca$rotation)
+    mult <- min((max(my.data[, "PC2"]) - min(my.data[, "PC2"])/(max(datapc[, 
+        "PC2"]) - min(datapc[, "PC2"]))), (max(my.data[, "PC1"]) - 
+        min(my.data[, "PC1"])/(max(datapc[, "PC1"]) - min(datapc[, 
+            "PC1"]))))
+    datapc <- transform(datapc, v1 = arrow.length * mult * PC1, 
+        v2 = arrow.length * mult * PC2)
+    datapc$v <- with(datapc, sqrt(v1 * v1 + v2 * v2))
+    datapc$Symbol <- suppressMessages(AnnotationDbi::mapIds(org.Mm.eg.db,keys=rownames(datapc),keytype='ENTREZID',column='SYMBOL'))
+    datapc$Gene <- suppressMessages(AnnotationDbi::mapIds(org.Mm.eg.db,keys=rownames(datapc),keytype='ENTREZID',column='GENENAME'))
+    g <- ggplot() + geom_point(data = pc.data, aes_string(x = "PC1", 
+        y = "PC2", color = color.attr,shape=shape.attr,Sample='obsnames'),size=4)
+    if (!is.null(color.scheme)) {
+        g <- g + scale_color_manual(values = color.scheme)
+    }
+    if (biplot) {
+        arrow.colors <- ifelse(rownames(datapc) %in% highlight.genes, 
+            highlight.color, "black")
+        arrow.alphas <- ifelse(rownames(datapc) %in% highlight.genes, 
+            1, 0.2)
+        g <- g + geom_segment(data = datapc, aes(x = 0, y = 0, 
+            xend = v1, yend = v2,Symbol=Symbol,Gene=Gene), arrow = arrow(length = unit(0.2, 
+            "cm")), color = arrow.colors, alpha = arrow.alphas)
+    }
+    g <- g + xlab(paste0("PC1: ", percent.variance[1], "% variance")) + 
+        ylab(paste0("PC2: ", percent.variance[2], "% variance"))
+    #print(g)
+    invisible(list(gg = g, pc.data = pc.data, weights = pca$rotation))
+}
+```
+
+
+```{r echo=FALSE}
+#pca.res <- ggp.pca(vsd,coldata=colData(vsd),color.attr='genotype',biplot=T)
+
+ggp.pca.2(x=vsd,coldata=colData(vsd),color.attr='genotype',biplot = T) -> g
+g$gg %>% ggplotly
+```
+
+
+```{r include=FALSE}
+process.PC.data <- function(weights.df,pc,positive,n=50,de.genes){
+    weights <- weights.df[,pc]
+    suppressMessages(
+        info.from.entrez(names(sort(weights,decreasing=positive))[1:n])
+    ) -> df
+    df %>%
+        mutate(is.DiffExp = ifelse(ENTREZID %in% de.genes,"Yes","No")) %>%
+        DT::datatable(rownames=F,
+                  extensions = c('Scroller', 'Buttons'),
+                  options = list( scrollY = 200,  scroller = TRUE,  dom = "Bfrtip",buttons = c('copy', 'csv'))
+        )
+}
+```
+
+
+Positive PC1
+=====================================
+
+```{r echo=FALSE}
+process.PC.data(weights.df=g$weights,pc='PC1',positive=T,de.genes=de.genes)
+```
+
+
+Negative PC1
+=====================================
+
+```{r echo=FALSE}
+process.PC.data(weights.df=g$weights,pc='PC1',positive=F,de.genes=de.genes)
+```
+
+Positive PC2
+=====================================
+
+```{r echo=FALSE}
+process.PC.data(weights.df=g$weights,pc='PC2',positive=T,de.genes=de.genes)
+```
+
+
+Negative PC2
+=====================================
+
+```{r echo=FALSE}
+process.PC.data(weights.df=g$weights,pc='PC2',positive=F,de.genes=de.genes)
+```
