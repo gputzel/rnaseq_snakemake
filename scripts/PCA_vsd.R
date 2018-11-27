@@ -19,6 +19,11 @@ dds.no.bad.samples <- dds.new[,!(colnames(dds.new) %in% names(bad.samples))]
 sample.selection <- with(colData(dds.no.bad.samples),eval(parse(text=sample.subset)))
 dds.subset <- dds.no.bad.samples[,sample.selection]
 
+for(variable in all.vars(design(dds.subset))){
+    cat(variable,'\n')
+    colData(dds.subset)[,variable] <- droplevels(colData(dds.subset)[,variable])
+}
+
 eval(parse(text=paste0('prefilter <- ',prefilter.string)))
 dds.filtered <- prefilter(dds.subset)
 
