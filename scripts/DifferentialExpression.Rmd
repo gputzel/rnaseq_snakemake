@@ -7,13 +7,13 @@ output:
 ```{r setup, include=FALSE}
 library(flexdashboard)
 library(tidyverse)
-library(ggp.rnaseq)
+library(ggp.rnaseq.human)
 library(DESeq2)
 library(DT)
 library(crosstalk)
 library(d3scatter)
 library(plotly)
-library(org.Mm.eg.db)
+library(org.Hs.eg.db)
 ```
 
 ```{r include=FALSE}
@@ -76,7 +76,7 @@ bad.sample.string <- paste0(bad.sample.string.list,collapse='\n')
 - Gene prefilter function: ``r params[['prefilter']]`` (`r params[['prefilter_description']]`)
 - Genes are considered significantly differentially expressed when the adjusted p value (`padj`, or equivalently, False Discovery Rate) is less than `r alpha`. 
 - `DESeq2` version: `r packageVersion('DESeq2')`
-- `ggp.rnaseq` version: `r packageVersion('ggp.rnaseq')`
+- `ggp.rnaseq.human` version: `r packageVersion('ggp.rnaseq.human')`
 - Report generated on `r format(Sys.time(), "%a %b %d %X %Y")`
 
 Samples removed from analysis:
@@ -133,7 +133,7 @@ data.frame(df.long,as.data.frame(colData(dds))[df.long$sample,]) -> df.long
 df.long %>% group_by_(params[['attribute']],'ENTREZID') %>%
     summarize(avg = mean(counts)) %>% 
     spread(key=params[['attribute']],value='avg') -> df.mean
-gene.info <- suppressMessages(AnnotationDbi::select(org.Mm.eg.db,keys=df.mean$ENTREZID,keytype='ENTREZID',columns=c('SYMBOL','GENENAME')))
+gene.info <- suppressMessages(AnnotationDbi::select(org.Hs.eg.db,keys=df.mean$ENTREZID,keytype='ENTREZID',columns=c('SYMBOL','GENENAME')))
 suppressMessages(inner_join(df.mean,gene.info)) -> df
 df$DE <- "No"
 df[df$ENTREZID %in% res.de.up$ENTREZID,'DE'] <- "Up"
