@@ -1,6 +1,6 @@
 library(tidyverse)
 library(DESeq2)
-library(ggp.rnaseq)
+library(ggp.rnaseq.human)
 
 comparison <- snakemake@wildcards[['comparison']]
 
@@ -40,6 +40,6 @@ dds.filtered <- DESeq(dds.filtered)
 
 saveRDS(dds.filtered,snakemake@output[['dds']])
 
-res <- ggp.results(dds.filtered,c(de.attribute,de.group.1,de.group.2))
+res <- ggp.rnaseq.human::ggp.results(dds.filtered,c(de.attribute,de.group.1,de.group.2))
 
 saveRDS(res,snakemake@output[['rds']])
