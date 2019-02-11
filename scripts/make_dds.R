@@ -1,4 +1,4 @@
-library(ggp.rnaseq) #Commit 7d9b299fdfd10414a428bcb5d84e5b6d2b3b3419
+library(ggp.rnaseq.human)
 library(tidyverse)
 library(DESeq2)
 
@@ -19,7 +19,7 @@ colnames(counts) %>%
     mutate(cell.type = factor(cell.type,levels=c('nILC2','iILC2'))) %>%
     column_to_rownames(var = 'filename') %>% select(-X) -> coldata
 
-coldata$mapping.rate <- import.mapping.rates()$mapping.rate
+coldata$mapping.rate <- ggp.rnaseq.human::import.mapping.rates()$mapping.rate
 
 colnames(counts) <- rownames(coldata)
 
