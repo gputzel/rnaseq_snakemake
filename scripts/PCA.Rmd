@@ -7,13 +7,13 @@ output:
 ```{r setup, include=FALSE}
 library(flexdashboard)
 library(tidyverse)
-library(ggp.rnaseq)
+#library(ggp.rnaseq.human)
 library(DESeq2)
 library(DT)
 library(crosstalk)
 library(d3scatter)
 library(plotly)
-library(org.Mm.eg.db)
+library(org.Hs.eg.db)
 ```
 
 ```{r include=FALSE}
@@ -61,8 +61,8 @@ ggp.pca.2 <- function (x, coldata, color.attr = NULL,shape.attr=NULL, color.sche
     datapc <- transform(datapc, v1 = arrow.length * mult * PC1, 
         v2 = arrow.length * mult * PC2)
     datapc$v <- with(datapc, sqrt(v1 * v1 + v2 * v2))
-    datapc$Symbol <- suppressMessages(AnnotationDbi::mapIds(org.Mm.eg.db,keys=rownames(datapc),keytype='ENTREZID',column='SYMBOL'))
-    datapc$Gene <- suppressMessages(AnnotationDbi::mapIds(org.Mm.eg.db,keys=rownames(datapc),keytype='ENTREZID',column='GENENAME'))
+    datapc$Symbol <- suppressMessages(AnnotationDbi::mapIds(org.Hs.eg.db,keys=rownames(datapc),keytype='ENTREZID',column='SYMBOL'))
+    datapc$Gene <- suppressMessages(AnnotationDbi::mapIds(org.Hs.eg.db,keys=rownames(datapc),keytype='ENTREZID',column='GENENAME'))
     g <- ggplot() + geom_point(data = pc.data, aes_string(x = "PC1", 
         y = "PC2", color = color.attr,shape=shape.attr,Sample='obsnames'),size=4)
     if (!is.null(color.scheme)) {
@@ -94,5 +94,5 @@ g$gg %>% ggplotly
 - PCA plot is based on the `r n.topvar.genes` genes with the highest variance after applying the `DESeq2` function `varianceStabilizingTransformation`.
 - Gene prefilter function: ``r params[['prefilter']]`` (`r params[['prefilter_description']]`)
 - `DESeq2` version: `r packageVersion('DESeq2')`
-- `ggp.rnaseq` version: `r packageVersion('ggp.rnaseq')`
+- `ggp.rnaseq.human` version: `r packageVersion('ggp.rnaseq.human')`
 - Report generated on `r format(Sys.time(), "%a %b %d %X %Y")`
