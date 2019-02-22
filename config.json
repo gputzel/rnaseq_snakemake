@@ -1,26 +1,78 @@
 {
     "bam_path":"/path/to/BAM",
     "comparisons":{
-        "KO_vs_WT":{
-            "long-name":"KO versus WT",
+        "ILC2_vs_ILC3":{
+            "long-name":"ILC2 versus ILC3",
             "subset":"TRUE",
-            "attribute":"genotype",
-            "group1_plus":"KO",
-            "group2_minus":"WT",
-            "design":"~genotype",
+            "attribute":"cell.type",
+            "group1_plus":"ILC2",
+            "group2_minus":"ILC3",
+            "design":"~cell.type",
             "bad-samples":{
             },
             "prefilter":"function(dds) dds[ rowSums(counts(dds)) > 0,]",
             "prefilter_description":"Remove genes that have zero total counts",
             "do_fgsea":true
         },
-        "KO_vs_WT_prefilter":{
-            "long-name":"KO versus WT (prefiltered genes)",
+        "ILC2_vs_ILC3_prefilter":{
+            "long-name":"ILC2 versus ILC3 (prefiltered)",
             "subset":"TRUE",
-            "attribute":"genotype",
-            "group1_plus":"KO",
-            "group2_minus":"WT",
-            "design":"~genotype",
+            "attribute":"cell.type",
+            "group1_plus":"ILC2",
+            "group2_minus":"ILC3",
+            "design":"~cell.type",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
+            "prefilter_description":"Keep genes with 50 or more counts in at least 2 samples",
+            "do_fgsea":true
+        },
+        "ILC2_vs_ILC3_in_GF":{
+            "long-name":"ILC2 versus ILC3 within GF",
+            "subset":"bacteria=='GF'",
+            "attribute":"cell.type",
+            "group1_plus":"ILC2",
+            "group2_minus":"ILC3",
+            "design":"~cell.type",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds)) > 0,]",
+            "prefilter_description":"Remove genes that have zero total counts",
+            "do_fgsea":true
+        },
+        "ILC2_vs_ILC3_in_GF_prefilter":{
+            "long-name":"ILC2 versus ILC3 within GF (prefiltered)",
+            "subset":"bacteria=='GF'",
+            "attribute":"cell.type",
+            "group1_plus":"ILC2",
+            "group2_minus":"ILC3",
+            "design":"~cell.type",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
+            "prefilter_description":"Keep genes with 50 or more counts in at least 2 samples",
+            "do_fgsea":true
+        },
+        "ILC2_vs_ILC3_in_SPF":{
+            "long-name":"ILC2 versus ILC3 within SPF",
+            "subset":"bacteria=='SPF'",
+            "attribute":"cell.type",
+            "group1_plus":"ILC2",
+            "group2_minus":"ILC3",
+            "design":"~cell.type",
+            "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds)) > 0,]",
+            "prefilter_description":"Remove genes that have zero total counts",
+            "do_fgsea":true
+        },
+        "ILC2_vs_ILC3_in_SPF_prefilter":{
+            "long-name":"ILC2 versus ILC3 within SPF (prefiltered)",
+            "subset":"bacteria=='SPF'",
+            "attribute":"cell.type",
+            "group1_plus":"ILC2",
+            "group2_minus":"ILC3",
+            "design":"~cell.type",
             "bad-samples":{
             },
             "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
@@ -38,9 +90,9 @@
     "PCA_plots":{
         "All_samples":{
             "subset":"TRUE",
-            "color-attribute":"genotype",
-            "shape-attribute":null,
-            "design":"~genotype",
+            "color-attribute":"cell.type",
+            "shape-attribute":"bacteria",
+            "design":"~cell.type+bacteria",
             "bad-samples":{
             },
             "prefilter":"function(dds) dds[ rowSums(counts(dds)) > 0,]",
@@ -48,9 +100,9 @@
         },
         "All_samples_prefilter":{
             "subset":"TRUE",
-            "color-attribute":"genotype",
-            "shape-attribute":null,
-            "design":"~genotype",
+            "color-attribute":"cell.type",
+            "shape-attribute":"bacteria",
+            "design":"~cell.type+bacteria",
             "bad-samples":{
             },
             "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
@@ -84,5 +136,79 @@
         "minSize":10,
         "maxSize":500,
         "nperm":20000
+    },
+    "gene_lists":{
+        "Neurotransmitter biosynthetic process":{
+            "name":"GO: Neurotransmitter biosynthetic process",
+            "type":"GO",
+            "id":"GO:0042136",
+            "color":"red"
+        },
+        "Neuropeptide signaling pathway":{
+            "name":"GO: Neuropeptide signaling pathway",
+            "type":"GO",
+            "id":"GO:0007218",
+            "color":"orange"
+        },
+        "Hormone activity":{
+            "name":"GO: Hormone activity",
+            "type":"GO",
+            "id":"GO:0005179",
+            "color":"green"
+        },
+        "Growth factor activity":{
+            "name":"GO: Growth factor activity",
+            "type":"GO",
+            "id":"GO:0008083",
+            "color":"blue"
+        },
+        "Enteric nervous system development":{
+            "name":"GO: Enteric nervous system development",
+            "type":"GO",
+            "id":"GO:0048484",
+            "color":"purple"
+        },
+        "Axon guidance":{
+            "name":"GO: Axon guidance",
+            "type":"GO",
+            "id":"GO:0007411",
+            "color":"pink"
+        },
+        "Nerve development":{
+            "name":"GO: Nerve development",
+            "type":"GO",
+            "id":"GO:0021675",
+            "color":"darkred"
+        },
+        "Neuropilin binding":{
+            "name":"GO: Neuropilin binding",
+            "type":"GO",
+            "id":"GO:0038191",
+            "color":"goldenrod"
+        },
+        "Semaphorin-plexin signaling pathway":{
+            "name":"GO: Semaphorin-plexin signaling pathway",
+            "type":"GO",
+            "id":"GO:0071526",
+            "color":"darkolivegreen"
+        },
+        "Angiogenesis":{
+            "name":"GO: Angiogenesis",
+            "type":"GO",
+            "id":"GO:0001525",
+            "color":"mediumpurple4"
+        },
+        "KEGG:Neuroactive ligand-receptor interaction":{
+            "name":"KEGG: Neuroactive ligand-receptor interaction",
+            "type":"KEGG",
+            "id":"mmu04080",
+            "color":"navajowhite"
+        },
+        "KEGG: Axon guidance":{
+            "name":"KEGG: Axon guidance",
+            "type":"KEGG",
+            "id":"mmu04360",
+            "color":"magenta"
+        }
     }
 }

@@ -14,6 +14,7 @@ library(crosstalk)
 library(d3scatter)
 library(plotly)
 library(org.Mm.eg.db)
+library(KEGGREST)
 ```
 
 ```{r include=FALSE}
@@ -124,6 +125,19 @@ res %>%
 Scatterplot
 ===================================== 
 
+```{r include=FALSE}
+entrez.from.GOIDs <- function(go.id){
+    AnnotationDbi::select(org.Mm.eg.db,key=go.id,keytype='GOALL',columns=c('ENTREZID')) %>%
+    .$ENTREZID %>% unique
+}
+entrez.from.KEGG <- function(kegg.id){
+    query <- keggGet(kegg.id)
+    messy.results <- query[[1]]$GENE
+    entrez <- messy.results[messy.results %in% AnnotationDbi::keys(org.Mm.eg.db,keytype='ENTREZID')]
+    entrez
+}
+```
+
 
 ```{r echo=FALSE}
 as.data.frame(counts(dds,normalize=TRUE)) %>%
@@ -136,16 +150,96 @@ df.long %>% group_by_(params[['attribute']],'ENTREZID') %>%
 gene.info <- suppressMessages(AnnotationDbi::select(org.Mm.eg.db,keys=df.mean$ENTREZID,keytype='ENTREZID',columns=c('SYMBOL','GENENAME')))
 suppressMessages(inner_join(df.mean,gene.info)) -> df
 df$DE <- "No"
+df$DE.long <- "No"
 df[df$ENTREZID %in% res.de.up$ENTREZID,'DE'] <- "Up"
 df[df$ENTREZID %in% res.de.down$ENTREZID,'DE'] <- "Down"
-de.colors=c("No"="black","Up"="red","Down"="blue")
-formula.x <- as.formula(paste0('~log10(',params[['group2_minus']],')'))
-formula.y <- as.formula(paste0('~log10(',params[['group1_plus']],')'))
-df %>%
-    plot_ly(
-        x=formula.x,y=formula.y,
-        color=~DE,colors=de.colors,
-        type="scatter", mode="markers", hoverinfo="text",text = ~paste(SYMBOL, '<br>', GENENAME)
-    )
+df[df$ENTREZID %in% res.de.up$ENTREZID,'DE.long'] <- paste0("Higher in ",params[['group1_plus']])
+df[df$ENTREZID %in% res.de.down$ENTREZID,'DE.long'] <- paste0("Lower in ",params[['group1_plus']])
+df[,'x'] <- log10(df[,params[['group2_minus']]] + 0.5)
+df[,'y'] <- log10(df[,params[['group1_plus']]] + 0.5)
+df[,'x.not.logged'] <- df[,params[['group2_minus']]]
+df[,'y.not.logged'] <- df[,params[['group1_plus']]]
+# de.colors=c("No"="black","Up"="red","Down"="blue")
+# formula.x <- as.formula(paste0('~log10(',params[['group2_minus']],')'))
+# formula.y <- as.formula(paste0('~log10(',params[['group1_plus']],')'))
+# xvalues <- 
+# df %>%
+#     plot_ly(
+#         x=formula.x,y=formula.y,
+#         color=~DE,colors=de.colors,
+#         type="scatter", mode="markers", hoverinfo="text",text = ~paste(SYMBOL, '<br>', GENENAME)
+#     )
+xmin <- min(df$x) - 0.5
+xmax <- 1.05*max(df$x)
+ymin <- min(df$y) - 0.5
+ymax <- 1.05*max(df$y)
+
+pal <- c("black","red","blue")
+pal <- setNames(pal,c("No","Up","Down"))
+
+p <- plot_ly(df,type = 'scatter', mode='markers') %>%
+    add_trace(x=~x, y=~y,
+              #color=~DE,colors=pal, #can't seem to get this to work
+              text=~paste0(SYMBOL,'<br>',
+                          GENENAME,'<br>',
+                          'Mean normalized counts in ',params[['group1_plus']],": ",round(y.not.logged,digits=1),"<br>",
+                          'Mean normalized counts in ',params[['group2_minus']],": ",round(x.not.logged,digits=1),"<br>",
+                          "Differentially expressed: ",DE.long
+                         ),
+              name='All genes',
+              marker=list(opacity=0.2,color='black'),
+              hoverinfo='text'
+             ) -> p
+
+for(obj in snakemake@config[["gene_lists"]]){
+    if(obj$type=="GO"){
+        entrez <- entrez.from.GOIDs(obj$id)
+        df.filtered <- df[df$ENTREZID %in% entrez,]
+        p %>%
+            add_trace(
+                data=df.filtered,
+                x=~x, y=~y,
+                text=~paste0(SYMBOL,'<br>',
+                             GENENAME,'<br>',
+                             'Mean normalized counts in ',params[['group1_plus']],": ",round(y.not.logged,digits=1),"<br>",
+                             'Mean normalized counts in ',params[['group2_minus']],": ",round(x.not.logged,digits=1),"<br>",
+                             "Differentially expressed: ",DE.long
+                ),
+                name=obj$name,
+                marker=list(color=obj$color),
+                hoverinfo='text'
+            ) -> p
+    } else if(obj$type=="KEGG"){
+        entrez <- entrez.from.KEGG(obj$id)
+        df.filtered <- df[df$ENTREZID %in% entrez,]
+        p %>%
+            add_trace(
+                data=df.filtered,
+                x=~x, y=~y,
+                text=~paste0(SYMBOL,'<br>',
+                             GENENAME,'<br>',
+                             'Mean normalized counts in ',params[['group1_plus']],": ",round(y.not.logged,digits=1),"<br>",
+                             'Mean normalized counts in ',params[['group2_minus']],": ",round(x.not.logged,digits=1),"<br>",
+                             "Differentially expressed: ",DE.long
+                ),
+                name=obj$name,
+                marker=list(color=obj$color),
+                hoverinfo='text'
+            ) -> p
+    }
+}
+
+p %>%
+    layout(
+        xaxis= list(
+            range = c(xmin,xmax),
+            title = paste0('log_10(Mean normalized counts in ', params[['group2_minus']] ,' + 0.5)')
+        ),
+        yaxis = list(
+            range = c(ymin,ymax),
+            title = paste0('log_10(Mean normalized counts in ', params[['group1_plus']] ,' + 0.5)')
+        )
+    ) -> p
+p
 ```
 
