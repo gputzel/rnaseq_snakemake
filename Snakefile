@@ -5,6 +5,11 @@ def get_bam_files():
     bamfiles = [base + ".bam" for base in IDS]
     return bamfiles
 
+def get_fastq_files():
+    IDS, = glob_wildcards(config["fastq_path"] + "/{id}.fastq.gz")
+    fastq_files = [base + ".fastq.gz" for base in IDS]
+    return fastq_files
+
 rule bam_links:
     input:
         [config["bam_path"] + "/" + bam for bam in get_bam_files()]
@@ -13,6 +18,37 @@ rule bam_links:
     run:
         for bam in get_bam_files():
             shell("ln -s " + config["bam_path"] + "/" + bam + " data/BAM/" + bam)
+
+rule fastq_links:
+    input:
+        [config["fastq_path"] + "/" + fastq_file for fastq_file in get_fastq_files()]
+    output:
+        ["data/FASTQ/" + fastq for fastq in get_fastq_files()]
+    run:
+        for fastq in get_fastq_files():
+            shell("ln -s " + config["fastq_path"] + "/" + fastq + " data/FASTQ/" + fastq)
+
+rule download_genome:
+    output:
+        "resources/genome.fasta.gz"
+    shell:
+        'wget ' + config["genome_url"] + ' -O {output}'
+
+rule decompress_genome:
+    input:
+        "resources/genome.fasta.gz"
+    output:
+        "resources/genome.fasta"
+    shell:
+        "gzcat {input} > {output}"
+
+rule bwa_index:
+    input:
+        "resources/genome.fasta"
+    output:
+        ["resources/genome.fasta" + ending for ending in ['.amb','.ann','.bwt','.pac','.sa']]
+    shell:
+        "bwa index -a bwtsw {input}"
 
 rule featurecounts:
     input:

@@ -1,4 +1,6 @@
 {
+    "genome_url":"http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.fa.gz",
+    "fastq_path":"/Volumes/JRI/Data_received/Other/Sonnenberg_Lab/BMS_RNAseq/DT-14/P-20171012-0001",
     "bam_path":"/path/to/BAM",
     "comparisons":{
         "KO_vs_WT":{
