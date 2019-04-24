@@ -50,6 +50,35 @@ rule bwa_index:
     shell:
         "bwa index -a bwtsw {input}"
 
+rule bwa_single:
+    input:
+        ref="resources/genome.fasta",
+        index=["resources/genome.fasta" + ending for ending in ['.amb','.ann','.bwt','.pac','.sa']],
+        forward="data/FASTQ/{sample}_R1.fastq.gz",
+        reverse="data/FASTQ/{sample}_R2.fastq.gz"
+    threads: 4
+    output:
+        temp("output/SAM/{sample}.sam")
+    shell:
+        "bwa mem -t {threads} {input.ref} {input.forward} {input.reverse} | samtools view -h -F 4 > {output}"
+
+rule bam_single:
+    input:
+        "output/SAM/{sample}.sam"
+    threads: 4
+    output:
+        "output/BAM/{sample}.bam"
+    shell:
+        "samtools sort -@ 3 -m 5G {input} > {output}"
+
+rule bam_single_slurm_script:
+    input:
+        "resources/slurm_script.sh"
+    output:
+        "output/Slurm_scripts/make_BAM/bwa_{sample}.sh"
+    shell:
+        "cat {input} | sed 's/SAMPLE/{wildcards.sample}/g' > {output}"
+
 rule featurecounts:
     input:
         ["data/BAM/" + bam for bam in get_bam_files()]
