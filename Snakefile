@@ -20,6 +20,7 @@ rule featurecounts:
     output:
         report="reports/featureCounts.report.txt",
         counts="data/gene_counts.tsv"
+    threads: 4
     script:
         "scripts/featureCounts.R"
 
