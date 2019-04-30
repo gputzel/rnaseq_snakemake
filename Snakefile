@@ -5,6 +5,11 @@ def get_bam_files():
     bamfiles = [base + ".bam" for base in IDS]
     return bamfiles
 
+def get_fastq_files():
+    IDS, = glob_wildcards(config["fastq_path"] + "/{id}.fastq.gz")
+    fastq_files = [base + ".fastq.gz" for base in IDS]
+    return fastq_files
+
 rule bam_links:
     input:
         [config["bam_path"] + "/" + bam for bam in get_bam_files()]
@@ -13,6 +18,66 @@ rule bam_links:
     run:
         for bam in get_bam_files():
             shell("ln -s " + config["bam_path"] + "/" + bam + " data/BAM/" + bam)
+
+rule fastq_links:
+    input:
+        [config["fastq_path"] + "/" + fastq_file for fastq_file in get_fastq_files()]
+    output:
+        ["data/FASTQ/" + fastq for fastq in get_fastq_files()]
+    run:
+        for fastq in get_fastq_files():
+            shell("ln -s " + config["fastq_path"] + "/" + fastq + " data/FASTQ/" + fastq)
+
+rule download_genome:
+    output:
+        "resources/genome.fasta.gz"
+    shell:
+        'wget ' + config["genome_url"] + ' -O {output}'
+
+rule decompress_genome:
+    input:
+        "resources/genome.fasta.gz"
+    output:
+        "resources/genome.fasta"
+    shell:
+        "gzcat {input} > {output}"
+
+rule bwa_index:
+    input:
+        "resources/genome.fasta"
+    output:
+        ["resources/genome.fasta" + ending for ending in ['.amb','.ann','.bwt','.pac','.sa']]
+    shell:
+        "bwa index -a bwtsw {input}"
+
+rule bwa_single:
+    input:
+        ref="resources/genome.fasta",
+        index=["resources/genome.fasta" + ending for ending in ['.amb','.ann','.bwt','.pac','.sa']],
+        forward="data/FASTQ/{sample}_R1.fastq.gz",
+        reverse="data/FASTQ/{sample}_R2.fastq.gz"
+    threads: 4
+    output:
+        temp("output/SAM/{sample}.sam")
+    shell:
+        "bwa mem -t {threads} {input.ref} {input.forward} {input.reverse} | samtools view -h -F 4 > {output}"
+
+rule bam_single:
+    input:
+        "output/SAM/{sample}.sam"
+    threads: 4
+    output:
+        "output/BAM/{sample}.bam"
+    shell:
+        "samtools sort -@ 3 -m 5G {input} > {output}"
+
+rule bam_single_slurm_script:
+    input:
+        "resources/slurm_script.sh"
+    output:
+        "output/Slurm_scripts/make_BAM/bwa_{sample}.sh"
+    shell:
+        "cat {input} | sed 's/SAMPLE/{wildcards.sample}/g' > {output}"
 
 rule featurecounts:
     input:
