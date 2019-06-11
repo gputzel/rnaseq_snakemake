@@ -1,5 +1,39 @@
 configfile: "config.json"
 
+rule decompress_fastq:
+    input:
+        config["fastq_path"] + "/{sample}_L002_R1_001.fastq.gz"
+    output:
+        temp("output/FASTQ/{sample}.fastq")
+    shell:
+        "gzcat {input} > {output}"
+
+rule align:
+    input:
+        "output/FASTQ/{sample}.fastq"
+    output:
+        temp("output/SAM/{sample}_Aligned.out.sam")
+    threads: 4
+    shell:
+        "star --runThreadN {threads} --genomeDir " + config["star_index"] + " --readFilesIn {input} --outFileNamePrefix output/SAM/{wildcards.sample}_"
+
+rule bam:
+    input:
+        "output/SAM/{sample}_Aligned.out.sam"
+    output:
+        config["bam_path"] + "/{sample}.sorted.bam"
+    threads: 4
+    shell:
+        "samtools sort -@ 3 -m 4G {input} > {output}"
+
+rule bam_index:
+    input:
+        config["bam_path"] + "/{sample}.sorted.bam"
+    output:
+        config["bam_path"] + "/{sample}.sorted.bam.bai"
+    shell:
+        "samtools index {input}"
+
 def get_bam_files():
     IDS, = glob_wildcards(config["bam_path"] + "/{id}.bam")
     bamfiles = [base + ".bam" for base in IDS]
