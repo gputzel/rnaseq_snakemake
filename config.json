@@ -1,27 +1,44 @@
 {
-    "bam_path":"/path/to/BAM",
+    "bam_path":"/Volumes/IlievData/data_received/Epithelial_fungi_control_May_2019/BAM",
+    "fastq_path":"/Volumes/IlievData/data_received/Epithelial_fungi_control_May_2019/FASTQ",
+    "star_index":"/Users/greg/Documents/resources/STAR_indices/UCSC_mm10/overhang_50",
     "comparisons":{
-        "KO_vs_WT":{
-            "long-name":"KO versus WT",
+        "Muc_effect":{
+            "long-name":"ASFMuc versus ASF",
             "subset":"TRUE",
-            "attribute":"genotype",
-            "group1_plus":"KO",
-            "group2_minus":"WT",
-            "design":"~genotype",
+            "attribute":"Group",
+            "group1_plus":"ASFMuc",
+            "group2_minus":"ASF",
+            "design":"~Group",
             "bad-samples":{
             },
             "prefilter":"function(dds) dds[ rowSums(counts(dds)) > 0,]",
             "prefilter_description":"Remove genes that have zero total counts",
             "do_fgsea":true
         },
-        "KO_vs_WT_prefilter":{
-            "long-name":"KO versus WT (prefiltered genes)",
+        "Muc_effect_prefilter":{
+            "long-name":"ASFMuc versus ASF (prefiltered genes)",
             "subset":"TRUE",
-            "attribute":"genotype",
-            "group1_plus":"KO",
-            "group2_minus":"WT",
-            "design":"~genotype",
+            "attribute":"Group",
+            "group1_plus":"ASFMuc",
+            "group2_minus":"ASF",
+            "design":"~Group",
             "bad-samples":{
+            },
+            "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
+            "prefilter_description":"Keep genes with 50 or more counts in at least 2 samples",
+            "do_fgsea":true
+        },
+        "Muc_effect_subset_prefilter":{
+            "long-name":"ASFMuc versus ASF, hand-picked subset of samples according to Duox2 expression (prefiltered genes)",
+            "subset":"TRUE",
+            "attribute":"Group",
+            "group1_plus":"ASFMuc",
+            "group2_minus":"ASF",
+            "design":"~Group",
+            "bad-samples":{
+                "Sample_5":"Low expression of Duox2",
+                "Sample_8":"Low expression of Duox2"
             },
             "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
             "prefilter_description":"Keep genes with 50 or more counts in at least 2 samples",
@@ -29,8 +46,8 @@
         }
     },
     "size_factor_plot":{
-        "x-axis-attribute":"genotype",
-        "color-attribute":"genotype",
+        "x-axis-attribute":"Group",
+        "color-attribute":"Group",
         "facet-attribute":null,
         "group-attribute":null,
         "shape-attribute":null
@@ -38,9 +55,9 @@
     "PCA_plots":{
         "All_samples":{
             "subset":"TRUE",
-            "color-attribute":"genotype",
+            "color-attribute":"Group",
             "shape-attribute":null,
-            "design":"~genotype",
+            "design":"~Group",
             "bad-samples":{
             },
             "prefilter":"function(dds) dds[ rowSums(counts(dds)) > 0,]",
@@ -48,9 +65,9 @@
         },
         "All_samples_prefilter":{
             "subset":"TRUE",
-            "color-attribute":"genotype",
+            "color-attribute":"Group",
             "shape-attribute":null,
-            "design":"~genotype",
+            "design":"~Group",
             "bad-samples":{
             },
             "prefilter":"function(dds) dds[ rowSums(counts(dds) > 49) > 1,]",
